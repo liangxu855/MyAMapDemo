@@ -1,8 +1,5 @@
 package com.amap.map2d.demo.overlay;
 
-import java.util.ArrayList;
-import java.util.List;
-
 import android.app.Activity;
 import android.graphics.Color;
 import android.graphics.Point;
@@ -41,6 +38,9 @@ import com.amap.api.maps2d.model.TextOptions;
 import com.amap.map2d.demo.R;
 import com.amap.map2d.demo.util.Constants;
 import com.amap.map2d.demo.util.ToastUtil;
+
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * AMapV1地图中简单介绍一些Marker的用法.
