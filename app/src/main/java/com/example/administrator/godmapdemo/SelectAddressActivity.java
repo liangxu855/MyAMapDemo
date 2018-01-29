@@ -3,9 +3,14 @@ package com.example.administrator.godmapdemo;
 import android.app.Activity;
 import android.content.Intent;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Message;
 import android.support.annotation.Nullable;
+import android.support.v7.widget.LinearLayoutManager;
+import android.support.v7.widget.RecyclerView;
 import android.util.Log;
 import android.view.View;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import com.amap.api.location.AMapLocation;
@@ -49,6 +54,33 @@ public class SelectAddressActivity extends Activity implements LocationSource,
     private AMapLocationClientOption mLocationOption;//声明AMapLocationClientOption对象
     private LatLonPoint latLonPoint;
     private PoiResult poiResult; // poi返回的结果
+    private RecyclerView recyclerView;
+    private MyAdapter<PoiItem> adapter;
+
+    private Handler mHandler = new Handler() {
+        @Override
+        public void handleMessage(Message msg) {
+            switch (msg.what) {
+                case 0:
+                    if (isFirst) {
+                        adapter = new MyAdapter<PoiItem>(SelectAddressActivity.this, pois, R.layout.item_address_list) {
+                            @Override
+                            public void bindViewHolder(PoiItem poiItem, View itemView) {
+                                ((TextView) itemView.findViewById(R.id.tv_title)).setText(poiItem.getTitle());
+                                ((TextView) itemView.findViewById(R.id.tv_des)).setText(poiItem.getDirection());
+                            }
+                        };
+                        recyclerView.setAdapter(adapter);
+                        isFirst = false;
+                    } else {
+                        adapter.notifyDataSetChanged();
+                    }
+                    break;
+            }
+        }
+    };
+    private ArrayList<PoiItem> pois = new ArrayList<>();
+
     public static void startUiForResult(Activity context, int requestCode) {
         Intent intent = new Intent(context, SelectAddressActivity.class);
         context.startActivityForResult(intent, requestCode);
@@ -60,6 +92,9 @@ public class SelectAddressActivity extends Activity implements LocationSource,
         setContentView(R.layout.activity_select_address);
         mapView = (MapView) findViewById(R.id.map);
         mapView.onCreate(savedInstanceState);// 此方法必须重写
+
+        recyclerView = findViewById(R.id.recycle_view);
+        recyclerView.setLayoutManager(new LinearLayoutManager(this));
         init();
     }
 
@@ -69,7 +104,12 @@ public class SelectAddressActivity extends Activity implements LocationSource,
 
         if (aMap == null) {
             aMap = mapView.getMap();
-            setUpMap();
+            aMap.setOnMapLoadedListener(new AMap.OnMapLoadedListener() {
+                @Override
+                public void onMapLoaded() {
+                    setUpMap();
+                }
+            });
         }
 
     }
@@ -170,10 +210,10 @@ public class SelectAddressActivity extends Activity implements LocationSource,
         Log.e("屏幕中点对应:  latitude----", target.latitude + "longitude------" + target.longitude);
         // 第一个参数表示一个Latlng，第二参数表示范围多少米，第三个参数表示是火系坐标系还是GPS原生坐标系
         latLonPoint = new LatLonPoint(target.latitude, target.longitude);
+
         RegeocodeQuery query = new RegeocodeQuery(latLonPoint, 200, GeocodeSearch.AMAP);
         geocodeSearch.getFromLocationAsyn(query);
-        latLonPoint = null;
-        query = null;
+
     }
 
     private PoiSearch.Query query;
@@ -244,13 +284,18 @@ public class SelectAddressActivity extends Activity implements LocationSource,
         mapView.onDestroy();
     }
 
+    private boolean isFirst = true;
+
     @Override
     public void onPoiSearched(PoiResult result, int rcode) {
+        Log.e("onPoiSearched recode:", rcode + "");
         if (rcode == AMapException.CODE_AMAP_SUCCESS) {
             if (result != null && result.getQuery() != null) {// 搜索poi的结果
                 poiResult = result;
-                ArrayList<PoiItem> pois = poiResult.getPois();
+                pois.clear();
+                pois.addAll(poiResult.getPois());
 
+                mHandler.sendEmptyMessage(0);
             } else {
                 ToastUtil.show(this.getApplicationContext(), "无...");
             }
@@ -260,6 +305,7 @@ public class SelectAddressActivity extends Activity implements LocationSource,
     }
 
     @Override
+
     public void onPoiItemSearched(PoiItem poiItem, int i) {
 
     }
