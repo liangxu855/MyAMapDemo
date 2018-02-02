@@ -19,6 +19,7 @@ public abstract class MyAdapter<T> extends RecyclerView.Adapter<MyAdapter.MyView
     private LayoutInflater inflater;
     @LayoutRes
     private int layoutRes;
+    private OnItemClickListener listener;
 
     public MyAdapter(Context context, ArrayList<T> list, @LayoutRes int res) {
         inflater = LayoutInflater.from(context);
@@ -31,14 +32,28 @@ public abstract class MyAdapter<T> extends RecyclerView.Adapter<MyAdapter.MyView
         View view = inflater.inflate(layoutRes, null, false);
         return new MyViewHolder(view);
     }
+
     @Override
     public void onBindViewHolder(MyAdapter.MyViewHolder holder, int position) {
         holder.bindView(position);
+        final int mPosition = position;
+        holder.itemView.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                if (listener!=null){
+                    listener.onItemClick(mPosition,v);
+                }
+            }
+        });
     }
 
     @Override
     public int getItemCount() {
         return mList.size();
+    }
+
+    public void setOnItemClickListener(OnItemClickListener listener) {
+        this.listener = listener;
     }
 
     public abstract void bindViewHolder(T t, View itemView);
@@ -49,8 +64,12 @@ public abstract class MyAdapter<T> extends RecyclerView.Adapter<MyAdapter.MyView
             super(itemView);
         }
 
-        public void bindView(int position){
-            bindViewHolder(mList.get(position),itemView);
+        public void bindView(int position) {
+            bindViewHolder(mList.get(position), itemView);
         }
+    }
+
+    interface OnItemClickListener {
+        void onItemClick(int position, View itemView);
     }
 }

@@ -70,6 +70,15 @@ public class SelectAddressActivity extends Activity implements LocationSource,
                                 ((TextView) itemView.findViewById(R.id.tv_des)).setText(poiItem.getDirection());
                             }
                         };
+                        adapter.setOnItemClickListener(new MyAdapter.OnItemClickListener() {
+                            @Override
+                            public void onItemClick(int position, View itemView) {
+                                Intent intent = new Intent();
+                                intent.putExtra(MainActivity.ADDRESS,pois.get(position).getTitle());
+                                setResult(MainActivity.RESULT_OK,intent);
+                                finish();
+                            }
+                        });
                         recyclerView.setAdapter(adapter);
                         isFirst = false;
                     } else {
@@ -84,6 +93,7 @@ public class SelectAddressActivity extends Activity implements LocationSource,
     public static void startUiForResult(Activity context, int requestCode) {
         Intent intent = new Intent(context, SelectAddressActivity.class);
         context.startActivityForResult(intent, requestCode);
+
     }
 
     @Override
@@ -305,7 +315,6 @@ public class SelectAddressActivity extends Activity implements LocationSource,
     }
 
     @Override
-
     public void onPoiItemSearched(PoiItem poiItem, int i) {
 
     }

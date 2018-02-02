@@ -2,8 +2,10 @@ package com.example.administrator.godmapdemo;
 
 import android.app.Activity;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.support.annotation.Nullable;
+import android.text.TextUtils;
 import android.util.Log;
 import android.view.View;
 import android.widget.TextView;
@@ -31,7 +33,7 @@ import com.amap.api.services.geocoder.RegeocodeResult;
 public class MainActivity extends Activity implements LocationSource,
         AMapLocationListener /*声明定位回调监听器 */, AMap.OnCameraChangeListener, GeocodeSearch.OnGeocodeSearchListener
         , View.OnClickListener {
-
+    public static int REQUEST_OK = 2;
     private AMap aMap;
     private MapView mapView;
     private OnLocationChangedListener mListener;
@@ -47,6 +49,7 @@ public class MainActivity extends Activity implements LocationSource,
     private TextView tvTime;
     private double nowLatitude;  //当前定位 经度
     private double nowLongitude; //当前定位 纬度
+    private SharedPreferences sp;  //缓存经纬度
 
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
@@ -68,6 +71,9 @@ public class MainActivity extends Activity implements LocationSource,
         tvTime = findViewById(R.id.tv_time);
         tvTime.setOnClickListener(this);
         findViewById(R.id.commit).setOnClickListener(this);
+
+        sp = this.getSharedPreferences("address", 0);
+
         init();
 
     }
@@ -103,7 +109,18 @@ public class MainActivity extends Activity implements LocationSource,
         aMap.getUiSettings().setMyLocationButtonEnabled(true);// 设置默认定位按钮是否显示
         aMap.getUiSettings().setZoomControlsEnabled(false);
         aMap.getUiSettings().setScaleControlsEnabled(true);
-        aMap.setMyLocationEnabled(true);// 设置为true表示显示定位层并可触发定位，false表示隐藏定位层并不可触发定位，默认是false
+        aMap.setMyLocationEnabled(true);// 设置为true表示显示定位层并可触发定位，false表示隐藏定位层并可触发定位，默认是false
+        if (!TextUtils.isEmpty(sp.getString("latitude", "")) && !TextUtils.isEmpty(sp.getString("longitude", ""))) {
+            final double latitude = Double.parseDouble(sp.getString("latitude", ""));
+            final double longitude = Double.parseDouble(sp.getString("longitude", ""));
+            aMap.setOnMapLoadedListener(new AMap.OnMapLoadedListener() {
+                @Override
+                public void onMapLoaded() {
+                    LatLng localLatLng = new LatLng(latitude, longitude);
+                    aMap.moveCamera(CameraUpdateFactory.newLatLngZoom(localLatLng, 18));
+                }
+            });
+        }
         // aMap.setMyLocationType()
         // 设置定位的类型为定位模式，有定位、跟随或地图根据面向方向旋转几种
     }
@@ -158,6 +175,11 @@ public class MainActivity extends Activity implements LocationSource,
 
                 nowLatitude = amapLocation.getLatitude();
                 nowLongitude = amapLocation.getLongitude();
+
+                SharedPreferences.Editor edit = sp.edit();
+                edit.putString("latitude", nowLatitude + "");
+                edit.putString("Longitude", nowLongitude + "");
+                edit.commit();
             } else {
                 String errText = "定位失败," + amapLocation.getErrorCode() + ": " + amapLocation.getErrorInfo();
                 Log.e("AmapErr", errText);
@@ -254,7 +276,7 @@ public class MainActivity extends Activity implements LocationSource,
     }
 
     private boolean isForMe = true;
-    public static final int STAET_ADDRESS = 0;
+    public static final int START_ADDRESS = 0;
     public static final int END_ADDRESS = 1;
 
     @Override
@@ -276,10 +298,11 @@ public class MainActivity extends Activity implements LocationSource,
                 break;
             case R.id.tv_start:
                 Toast.makeText(this, "选择出发地", Toast.LENGTH_SHORT).show();
-                SelectAddressActivity.startUiForResult(this, STAET_ADDRESS);
+                SelectAddressActivity.startUiForResult(this, START_ADDRESS);
                 break;
             case R.id.tv_end:
                 Toast.makeText(this, "选择目的地", Toast.LENGTH_SHORT).show();
+                SelectAddressActivity.startUiForResult(this, END_ADDRESS);
                 break;
             case R.id.commit:
                 getInfo(isForMe);
@@ -295,9 +318,19 @@ public class MainActivity extends Activity implements LocationSource,
         Toast.makeText(this, time + ";" + (isForMe ? "" : phone + ";") + star + ";" + end, Toast.LENGTH_SHORT).show();
     }
 
+    public static String ADDRESS = "address";
+
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
+        if (resultCode == RESULT_OK) {
+            if (requestCode == START_ADDRESS) {
+                tvStart.setText(data.getStringExtra(ADDRESS));
+            }
 
+            if (requestCode == END_ADDRESS) {
+                tvEnd.setText(data.getStringExtra(ADDRESS));
+            }
+        }
     }
 }
